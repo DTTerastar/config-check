@@ -2,7 +2,6 @@ import appdaemon.plugins.hass.hassapi as hass
 import requests
 import json
 
-
 # Check Home Assistant Configuration
 
 class CheckConfig(hass.Hass):
@@ -23,10 +22,10 @@ class CheckConfig(hass.Hass):
 
 		# create a sensor to track check result
 		self.set_state("sensor.config_result", state="-", attributes = {"friendly_name": "Config Result", "detail": None})
-		
+
 		# get HASS URL
 		self.apiurl = "{}/api/config/core/check_config".format(self.config["plugins"]["HASS"]["ha_url"])
-		
+
 		# token or key to authenticate
 		if "token" in self.config["plugins"]["HASS"]:
 			self.auth = "token"
@@ -34,6 +33,12 @@ class CheckConfig(hass.Hass):
 				self.listen_state(self.check_config, "script.check_config", attribute="last_triggered")
 			else:
 				self.listen_event(self.config_throttle, "folder_watcher", file="configuration.yaml")
+				self.listen_event(self.config_throttle, "folder_watcher", file="groups.yaml")
+				self.listen_event(self.config_throttle, "folder_watcher", file="light.yaml")
+				self.listen_event(self.config_throttle, "folder_watcher", file="sensors.yaml")
+				self.listen_event(self.config_throttle, "folder_watcher", file="remote.yaml")
+				self.listen_event(self.config_throttle, "folder_watcher", file="binary_sensors.yaml")
+				self.listen_event(self.config_throttle, "folder_watcher", file="customize.yaml")
 		elif "ha_key" in self.config["plugins"]["HASS"]:
 			self.auth = "key"
 			if self.folder_watcher == False:
@@ -43,7 +48,7 @@ class CheckConfig(hass.Hass):
 		else:
 			self.log("AppDaemon config must use a token or key to authenticate with HASS")
 			self.set_state("sensor.config_result", state="ERROR", attributes = {"friendly_name": "Config Result", "detail": "AppDaemon config must use a token or key to authenticate with HASS"})
-		
+
 	def check_config(self, entity, attribute, old, new, kwargs):
 		# reset sensor while check is in progress
 		self.set_state("sensor.config_result", state="checking", attributes = {"detail": None})
@@ -62,7 +67,7 @@ class CheckConfig(hass.Hass):
 				self.call_service("homeassistant/restart")
 		else:
 			self.set_state("sensor.config_result", state="invalid", attributes = {"detail": json.loads(r.text)['errors']})
-			
+
 	def config_throttle(self, event_name, data, kwargs):
 		#throttle function to ensure that we don't call check multiple times
 		self.cancel_timer(self.throttle_timer)
